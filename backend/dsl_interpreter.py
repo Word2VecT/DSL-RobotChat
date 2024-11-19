@@ -1,9 +1,21 @@
+from doctest import Example
 import logging
 from pathlib import Path
 
 from lark import Lark, Transformer
 
 logger = logging.getLogger(__name__)
+
+example_data = [
+    {
+        "id": 123,
+        "price": 200,
+    },
+    {
+        "id": 456,
+        "price": 100,
+    },
+]
 
 
 class DSLTransformer(Transformer):
@@ -78,7 +90,7 @@ class DSLTransformer(Transformer):
         return {"reply": token[0][1:-1]}
 
     def next_state(self, token):
-        # 返回状态名称，默认返回 'INIT'
+        # 返回状态名称, 默认返回 'INIT'
         return {"next_state": str(token[0])}
 
 
@@ -94,6 +106,21 @@ class DSLInterpreter:
         self.tree = self.parser.parse(dsl_text)
         self.rules = DSLTransformer().transform(self.tree)
         self.current_state = "INIT"
+        self.default_message = self.rules["DEFAULT"][0][0]["reply"]
+        self.id = None
+
+    def get_variable(self, message):
+        ids = "\n" + "\n".join(str(data["id"]) for data in example_data)
+        message = message.replace("{ids}", ids)
+
+        if self.id:
+            message = message.replace("{id}", str(self.id))
+
+        for data in example_data:
+            if self.id and data["id"] == self.id:
+                message = message.replace("{id.price}", str(data["price"]))
+                break
+        return message
 
     def get_response(self, user_message):
         """根据用户输入生成回复, 并更新状态.
@@ -102,10 +129,16 @@ class DSLInterpreter:
         :return: 回复消息
         """
         # 获取当前状态的规则列表
-        rules_for_state = self.rules.get(self.current_state, [])
         if not self.current_state or self.current_state == "None":
             self.current_state = "INIT"
+        rules_for_state = self.rules.get(self.current_state, [])
         logger.info("Current state: %s", self.current_state)
+
+        if self.current_state.startswith("VAR") and user_message.isdigit():
+            self.id = int(user_message)
+            logger.info(self.id)
+            if any(data["id"] == self.id for data in example_data):
+                user_message = "{id}"
 
         # 遍历规则, 寻找匹配的条件
         for rule_set in rules_for_state:  # rules_for_state 是一个列表
@@ -113,18 +146,23 @@ class DSLInterpreter:
                 # 检查条件是否匹配
                 if "conditions" in case and any(cond in user_message for cond in case["conditions"]):
                     # 匹配成功, 返回回复并更新状态
+                    if self.current_state.startswith("VAR"):
+                        self.current_state = case.get("next_state")
+                        return self.get_variable(case["reply"])
                     self.current_state = case.get("next_state")
+                    if self.current_state.startswith("VAR"):
+                        return self.get_variable(case["reply"])
                     return case["reply"]
 
                 # 检查默认分支
-                if case.get("default", False):
+                if "default" in case:
+                    if self.current_state.startswith("VAR"):
+                        self.current_state = case.get("next_state")
+                        return self.get_variable(case["reply"])
                     self.current_state = case.get("next_state")
+                    if self.current_state.startswith("VAR"):
+                        return self.get_variable(case["reply"])
                     return case["reply"]
 
-        # 如果没有规则匹配, 尝试使用 DEFAULT 状态的规则
-        default_rule = self.rules.get("DEFAULT", [])[0][0]
-        self.current_state = default_rule.get("next_state")
-        return default_rule["reply"]
-
-        # 如果 DEFAULT 中也没有匹配, 返回一个通用提示
-        return "抱歉, 我无法理解您的意思。"
+        self.current_state = "INIT"
+        return self.default_message
