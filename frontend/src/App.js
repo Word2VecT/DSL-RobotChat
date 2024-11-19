@@ -48,7 +48,7 @@ export default function App() {
 
   return (
     <Chat
-      navbar={{ title: "智能助理" }}
+      navbar={{ title: "智能客服助手" }}
       messages={messages}
       renderMessageContent={renderMessageContent}
       onSend={handleSend}
