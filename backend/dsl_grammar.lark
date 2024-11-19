@@ -1,0 +1,15 @@
+%import common.ESCAPED_STRING -> STRING
+%import common.WS
+%ignore WS
+
+start: rule+
+
+rule: "rule" ":" condition_list "then" action_list
+
+condition_list: "if" condition_expr ("and" condition_expr)*
+
+condition_expr: "contains" STRING
+
+action_list: action_expr ("and" action_expr)*
+
+action_expr: "reply" STRING

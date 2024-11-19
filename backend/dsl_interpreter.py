@@ -1,80 +1,77 @@
-import re
+# dsl_interpreter.py
+
+from lark import Lark, Transformer
 import logging
 
-# 配置日志
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class Rule:
-    def __init__(self, name, patterns, response):
-        self.name = name
-        self.patterns = patterns  # List of regex patterns
-        self.response = response
-
-
 class DSLInterpreter:
-    def __init__(self, dsl_file_path):
-        self.rules = []
-        self.load_dsl(dsl_file_path)
+    def __init__(self, dsl_file_path, grammar_file_path):
+        # 读取语法文件
+        with open(grammar_file_path, "r", encoding="utf-8") as f:
+            grammar = f.read()
+        self.parser = Lark(grammar, start="start", parser="lalr")
+        # 解析 DSL 文件并存储规则
+        with open(dsl_file_path, "r", encoding="utf-8") as f:
+            dsl_text = f.read()
+        parse_tree = self.parser.parse(dsl_text)
+        self.rules = self.transform(parse_tree)
 
-    def load_dsl(self, path):
-        try:
-            with open(path, "r", encoding="utf-8") as file:
-                content = file.read()
-        except FileNotFoundError:
-            logger.error(f"DSL文件未找到: {path}")
-            return
+    def transform(self, parse_tree):
+        # 将解析树转换为规则列表
+        class TreeToRules(Transformer):
+            def start(self, rules):
+                return rules
 
-        rule_blocks = re.split(r"\n\s*\n", content)  # 按空行分割规则块
-        for block in rule_blocks:
-            lines = block.strip().split("\n")
-            if not lines:
-                continue
-            header = lines[0]
-            match = re.match(r"rule\s+(\w+):", header)
-            if not match:
-                logger.warning(f"无法解析规则头部: {header}")
-                continue
-            rule_name = match.group(1)
-            patterns = []
-            response = ""
-            for line in lines[1:]:
-                pattern_match = re.match(r"\s*pattern:\s*(.+)", line)
-                response_match = re.match(r'\s*response:\s*"(.+)"', line)
-                if pattern_match:
-                    pattern_str = pattern_match.group(1)
-                    # 去除引号并分割
-                    patterns = [
-                        p.strip().strip('"').strip("'") for p in pattern_str.split("|")
-                    ]
-                elif response_match:
-                    response = response_match.group(1)
-            # 转换为正则表达式
-            regex_patterns = []
-            for p in patterns:
-                if p == "*":
-                    regex_patterns.append(r".*")
-                else:
-                    # 添加通配符以允许部分匹配
-                    regex_patterns.append(re.escape(p))
-            # 编译正则表达式
-            compiled_patterns = [
-                re.compile(rf"{pattern}", re.IGNORECASE) for pattern in regex_patterns
-            ]
-            self.rules.append(Rule(rule_name, compiled_patterns, response))
-            logger.info(f"加载规则: {rule_name}, 模式: {patterns}, 响应: {response}")
+            def rule(self, items):
+                condition_list = items[0]
+                action_list = items[1]
+                return {"conditions": condition_list, "actions": action_list}
+
+            def condition_list(self, items):
+                return items
+
+            def condition_expr(self, items):
+                return ("contains", items[0])
+
+            def action_list(self, items):
+                return items
+
+            def action_expr(self, items):
+                return ("reply", items[0])
+
+            def STRING(self, s):
+                return str(s)[1:-1]  # 去除引号
+
+            def contains(self, items):
+                return items[0]
+
+            def reply(self, items):
+                return items[0]
+
+        transformer = TreeToRules()
+        rules = transformer.transform(parse_tree)
+        return rules
 
     def get_response(self, user_message):
-        logger.info(f"用户输入: {user_message}")
+        # 遍历规则，检查条件
         for rule in self.rules:
-            for pattern in rule.patterns:
-                if pattern.search(user_message):
-                    logger.info(f"匹配规则: {rule.name}")
-                    return rule.response
-        # 如果没有匹配到任何规则，返回默认响应
-        default_rule = next((r for r in self.rules if r.name == "default"), None)
-        if default_rule:
-            logger.info("匹配到默认规则")
-            return default_rule.response
-        return "抱歉，我无法理解您的意思。"
+            conditions_met = True
+            for condition in rule["conditions"]:
+                if condition[0] == "contains":
+                    keyword = condition[1]
+                    if keyword.lower() not in user_message.lower():
+                        conditions_met = False
+                        break
+                else:
+                    conditions_met = False
+                    break
+            if conditions_met:
+                # 执行动作
+                for action in rule["actions"]:
+                    if action[0] == "reply":
+                        response = action[1]
+                        return response
+        # 如果没有匹配的规则，返回默认响应
+        return "抱歉，我没有理解您的意思。"

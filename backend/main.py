@@ -27,7 +27,9 @@ class Message(BaseModel):
 
 
 # 初始化DSL解释器
-interpreter = DSLInterpreter("bot_rules.dsl")
+interpreter = DSLInterpreter(
+    dsl_file_path="rules.dsl", grammar_file_path="dsl_grammar.lark"
+)
 
 
 @app.post("/chat")
