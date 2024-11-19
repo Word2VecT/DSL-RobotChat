@@ -23,6 +23,7 @@ Example:
 """
 
 import logging
+import pprint
 from pathlib import Path
 
 from lark import Lark, Transformer
@@ -181,6 +182,7 @@ class DSLInterpreter:
         with Path(dsl_file_path).open(encoding="utf-8") as f:
             dsl_text = f.read()
         self.tree = self.parser.parse(dsl_text)
+        logger.info(pprint.pp(self.tree))
         self.rules = DSLTransformer().transform(self.tree)
         self.current_state = "INIT"
         self.default_message = self.rules["DEFAULT"][0][0]["reply"]

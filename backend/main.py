@@ -1,3 +1,9 @@
+"""Module that sets up a FastAPI application for a chatbot backend.
+
+It includes configuration for CORS, logging, and defines an endpoint
+for processing chat messages using a DSL interpreter.
+"""
+
 # main.py
 import logging
 
@@ -25,6 +31,13 @@ app.add_middleware(
 
 # 定义消息模型
 class Message(BaseModel):
+    """Schema for user messages.
+
+    This class defines the structure of the message sent to the
+    chat endpoint. It contains a single field:
+    - text: The user's input message.
+    """
+
     text: str
 
 
@@ -36,10 +49,27 @@ interpreter = DSLInterpreter(
 
 
 @app.post("/chat")
-async def chat_endpoint(message: Message):
+async def chat_endpoint(message: Message) -> dict:
+    """Handle incoming chat requests and return a reply.
+
+    This endpoint accepts a POST request containing a user message,
+    processes it using the DSLInterpreter, and returns a corresponding
+    reply.
+
+    Args:
+        message (Message): The user message sent as a POST request.
+
+    Returns:
+        dict: A dictionary with the reply to the user's message.
+
+    Example:
+        Input: {"text": "Hello"}
+        Output: {"reply": "Hi! How can I help you?"}
+
+    """
     user_message = message.text.strip()
     if not user_message:
-        return {"reply": "请您输入一些内容，我很乐意帮助您。"}
+        return {"reply": "请您输入一些内容, 我很乐意帮助您。"}
     # 获取响应
     response = interpreter.get_response(user_message)
     return {"reply": response}
