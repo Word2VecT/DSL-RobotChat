@@ -1,9 +1,11 @@
 # main.py
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from dsl_interpreter import DSLInterpreter
-import logging
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -27,9 +29,7 @@ class Message(BaseModel):
 
 
 # 初始化DSL解释器
-interpreter = DSLInterpreter(
-    dsl_file_path="rules.dsl", grammar_file_path="dsl_grammar.lark"
-)
+interpreter = DSLInterpreter(dsl_file_path="rules.dsl", grammar_file_path="dsl_grammar.lark")
 
 
 @app.post("/chat")

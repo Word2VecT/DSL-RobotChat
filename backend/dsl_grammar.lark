@@ -1,15 +1,28 @@
-%import common.ESCAPED_STRING -> STRING
+%import common.ESCAPED_STRING   -> STRING
+%import common.CNAME            -> NAME
 %import common.WS
+%import common.NEWLINE
 %ignore WS
+%ignore /#[^\n]*/  // 忽略以 # 开头的注释行
 
 start: rule+
 
-rule: "rule" ":" condition_list "then" action_list
+rule: state ":" statements
 
-condition_list: "if" condition_expr ("and" condition_expr)*
+state: NAME
 
-condition_expr: "contains" STRING
+statements: (case)+ default_case? | reply_case
 
-action_list: action_expr ("and" action_expr)*
+case: "if" "contain" condition (or_condition)* "reply" reply ["goto" next_state]
 
-action_expr: "reply" STRING
+condition: STRING
+
+or_condition: "or" condition
+
+reply: STRING
+
+next_state: NAME
+
+default_case: "else" "reply" reply ["goto" next_state]
+
+reply_case: "reply" reply ["goto" next_state]

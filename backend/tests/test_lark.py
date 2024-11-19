@@ -1,12 +1,10 @@
-import logging
+import pprint
 from pathlib import Path
 
 from lark import Lark, Transformer
 
-logger = logging.getLogger(__name__)
 
-
-class DSLTransformer(Transformer):
+class RuleTransformer(Transformer):
     def start(self, rules):
         # 将所有的 rule 转换为字典，key 是 state，value 是 rules
         return {rule["state"]: rule["rules"] for rule in rules}
@@ -82,49 +80,24 @@ class DSLTransformer(Transformer):
         return {"next_state": str(token[0])}
 
 
-class DSLInterpreter:
-    def __init__(self, dsl_file_path, grammar_file_path) -> None:
-        # 读取语法文件
-        with Path(grammar_file_path).open(encoding="utf-8") as f:
-            grammar = f.read()
-        self.parser = Lark(grammar, start="start", parser="lalr", transformer=DSLTransformer())
-        # 解析 DSL 文件并存储规则
-        with Path(dsl_file_path).open(encoding="utf-8") as f:
-            dsl_text = f.read()
-        self.tree = self.parser.parse(dsl_text)
-        self.rules = DSLTransformer().transform(self.tree)
-        self.current_state = "INIT"
+file_path = Path("/Users/tang/Course/程序设计实践/chatbot/backend/dsl_grammar.lark")  # 替换为你的文件路径
+with file_path.open(encoding="utf-8") as f:
+    dsl_grammar = f.read()
 
-    def get_response(self, user_message):
-        """根据用户输入生成回复, 并更新状态.
+parser = Lark(dsl_grammar, start="start", parser="lalr")
 
-        :param user_message: 用户的输入消息
-        :return: 回复消息
-        """
-        # 获取当前状态的规则列表
-        rules_for_state = self.rules.get(self.current_state, [])
-        if not self.current_state or self.current_state == "None":
-            self.current_state = "INIT"
-        logger.info("Current state: %s", self.current_state)
+# 从文件中读取 DSL 脚本
+file_path = Path("/Users/tang/Course/程序设计实践/chatbot/backend/rules.dsl")  # 替换为你的文件路径
+try:
+    with file_path.open(encoding="utf-8") as f:
+        dsl_script = f.read()
 
-        # 遍历规则, 寻找匹配的条件
-        for rule_set in rules_for_state:  # rules_for_state 是一个列表
-            for case in rule_set:  # 每个规则集内有多个 case
-                # 检查条件是否匹配
-                if "conditions" in case and any(cond in user_message for cond in case["conditions"]):
-                    # 匹配成功, 返回回复并更新状态
-                    self.current_state = case.get("next_state")
-                    return case["reply"]
-
-                # 检查默认分支
-                if case.get("default", False):
-                    self.current_state = case.get("next_state")
-                    return case["reply"]
-
-        # 如果没有规则匹配, 尝试使用 DEFAULT 状态的规则
-        default_rule = self.rules.get("DEFAULT", [])[0][0]
-        self.current_state = default_rule.get("next_state")
-        return default_rule["reply"]
-
-        # 如果 DEFAULT 中也没有匹配, 返回一个通用提示
-        return "抱歉, 我无法理解您的意思。"
+    tree = parser.parse(dsl_script)
+    print(tree.pretty())
+    transformer = RuleTransformer()
+    res = transformer.transform(tree)
+    pprint.pp(res)
+except FileNotFoundError:
+    pprint.pp(f"错误: 找不到文件 {file_path}")
+except Exception as e:
+    pprint.pp(f"解析错误: {e}")
