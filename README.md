@@ -1,5 +1,7 @@
 # DSL-RobotChat
 
+> 设计 DSL 语言的语法定义参考 [backend/README.md](https://github.com/Word2VecT/DSL-RobotChat/blob/main/backend/README.md)
+
 ## 技术栈
 
 - 前端: [`React`](https://github.com/facebook/react)
