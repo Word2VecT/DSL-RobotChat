@@ -46,7 +46,7 @@
 6. 安装项目依赖
 
     ```bash
-    uv pip install .
+    uv pip install -r pyproject.toml
     ```
 
 7. 后端服务测试
