@@ -1,8 +1,8 @@
 from backend.dsl_interpreter import DSLInterpreter
 
 # Mock data for testing
-grammar_file = "/Users/tang/Course/程序设计实践/chatbot/backend/dsl_grammar.lark"
-dsl_file = "/Users/tang/Course/程序设计实践/chatbot/backend/rules.dsl"
+grammar_file = "dsl_grammar.lark"
+dsl_file = "rules.dsl"
 
 
 # Test cases

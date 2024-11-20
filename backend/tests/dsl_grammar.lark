@@ -1,0 +1,28 @@
+%import common.ESCAPED_STRING   -> STRING
+%import common.CNAME            -> NAME
+%import common.WS
+%import common.NEWLINE
+%ignore WS
+%ignore /#[^\n]*/  // 忽略以 # 开头的注释行
+
+start: rule+
+
+rule: state ":" statements
+
+state: NAME
+
+statements: (case)+ default_case? | reply_case
+
+case: "if" "contain" condition (or_condition)* "reply" reply ["goto" next_state]
+
+condition: STRING
+
+or_condition: "or" condition
+
+reply: STRING
+
+next_state: NAME
+
+default_case: "else" "reply" reply ["goto" next_state]
+
+reply_case: "reply" reply ["goto" next_state]

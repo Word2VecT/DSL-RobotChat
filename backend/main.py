@@ -43,8 +43,8 @@ class Message(BaseModel):
 
 # 初始化DSL解释器
 interpreter = DSLInterpreter(
-    dsl_file_path="/Users/tang/Course/程序设计实践/chatbot/backend/rules.dsl",
-    grammar_file_path="/Users/tang/Course/程序设计实践/chatbot/backend/dsl_grammar.lark",
+    dsl_file_path="./rules.dsl",
+    grammar_file_path="./dsl_grammar.lark",
 )
 
 

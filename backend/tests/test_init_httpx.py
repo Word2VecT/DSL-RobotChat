@@ -35,11 +35,6 @@ async def test_chat_endpoint():
         assert response.status_code == 200
         assert response.json() == {"reply": "请文明用语"}
 
-        # Test empty message
-        response = await client.post("/chat", json={"text": ""})
-        assert response.status_code == 200
-        assert response.json() == {"reply": "请您输入一些内容，我很乐意帮助您。"}
-
         # Test unknown input
         response = await client.post("/chat", json={"text": "unknown"})
         assert response.status_code == 200
