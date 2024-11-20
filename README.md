@@ -10,7 +10,7 @@
 - UI 组件库: [`ChatUI`](https://github.com/alibaba/ChatUI)
 - 项目管理: `Git`
 - Python 项目管理: [`uv`](https://github.com/astral-sh/uv)
-- 测试框架：`pytest`
+- 测试框架: `pytest`
 
 ## 快速开始
 
